@@ -44,7 +44,7 @@ pipeline {
                             docker-compose -f docker-compose.prod.yml up -d
                             
                             echo "⏳ Waiting for application to start..."
-                            sleep 20
+                            sleep 60
                             
                             echo "🔍 Running health check..."
                             if curl -f http://localhost:3000/health; then
