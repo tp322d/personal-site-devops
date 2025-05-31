@@ -44,10 +44,10 @@ pipeline {
                             docker-compose -f docker-compose.dev.yml up -d
                             
                             echo "⏳ Waiting for application to start..."
-                            sleep 15
+                            sleep 35
                             
                             echo "🔍 Running health check..."
-                            if curl -f http://localhost:3000/health; then
+                            if curl -f http://localhost:3000/; then
                                 echo "✅ DEV deployment successful!"
                             else
                                 echo "❌ Health check failed!"
@@ -68,7 +68,6 @@ EOF
         success {
             echo "🎉 DEV deployment completed successfully!"
             echo "🌐 Website: http://${DEV_SERVER}:3000"
-            echo "❤️  Health: http://${DEV_SERVER}:3000/health"
         }
         failure {
             echo "❌ DEV deployment failed!"

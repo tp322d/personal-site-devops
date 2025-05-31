@@ -44,10 +44,10 @@ pipeline {
                             docker-compose -f docker-compose.prod.yml up -d
                             
                             echo "⏳ Waiting for application to start..."
-                            sleep 60
+                            sleep 45
                             
                             echo "🔍 Running health check..."
-                            if curl -f http://localhost:3000/health; then
+                            if curl -f http://localhost:3000/; then
                                 echo "✅ PRODUCTION deployment successful!"
                             else
                                 echo "❌ Health check failed!"
@@ -68,7 +68,6 @@ EOF
         success {
             echo "🎉 PRODUCTION deployment completed successfully!"
             echo "🌐 Website: http://${PROD_SERVER}:3000"
-            echo "❤️  Health: http://${PROD_SERVER}:3000/health"
             echo "🔗 Configure your reverse proxy to point to port 3000"
         }
         failure {
