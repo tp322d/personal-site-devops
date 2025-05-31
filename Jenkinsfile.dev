@@ -1,0 +1,80 @@
+pipeline {
+    agent any
+    
+    environment {
+        DEV_SERVER = '192.168.100.6'  
+        DEV_USER = 'patste'         
+        DEPLOY_DIR = '/opt/personal-site-devops'
+    }
+    
+    stages {
+        stage('Checkout Code') {
+            steps {
+                echo "📥 Checking out latest code..."
+                checkout scm
+            }
+        }
+        
+        stage('Deploy to Development') {
+            steps {
+                script {
+                    echo "🚀 Starting deployment to DEV server..."
+                    
+                    // Deploy to development server
+                    sh """
+                        ssh ${DEV_USER}@${DEV_SERVER} << 'EOF'
+                            echo "📥 Getting latest code on server..."
+                            cd ${DEPLOY_DIR}
+                            
+                            echo "🔄 Pulling latest changes..."
+                            git fetch origin
+                            git pull origin develop
+                            git reset --hard origin/develop
+                            
+                            echo "📋 Current commit:"
+                            git log --oneline -1
+                            
+                            echo "🛑 Stopping existing containers..."
+                            docker-compose -f docker-compose.dev.yml down || true
+                            
+                            echo "🏗️ Building application..."
+                            docker-compose -f docker-compose.dev.yml build --no-cache
+                            
+                            echo "🚀 Starting application..."
+                            docker-compose -f docker-compose.dev.yml up -d
+                            
+                            echo "⏳ Waiting for application to start..."
+                            sleep 15
+                            
+                            echo "🔍 Running health check..."
+                            if curl -f http://localhost:3000/health; then
+                                echo "✅ DEV deployment successful!"
+                            else
+                                echo "❌ Health check failed!"
+                                docker-compose -f docker-compose.dev.yml logs --tail=10
+                                exit 1
+                            fi
+                            
+                            echo "🧹 Cleaning up old images..."
+                            docker image prune -f || true
+EOF
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo "🎉 DEV deployment completed successfully!"
+            echo "🌐 Website: http://${DEV_SERVER}:3000"
+            echo "❤️  Health: http://${DEV_SERVER}:3000/health"
+        }
+        failure {
+            echo "❌ DEV deployment failed!"
+        }
+        always {
+            echo "📋 DEV deployment job finished."
+        }
+    }
+} 

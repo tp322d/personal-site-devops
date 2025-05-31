@@ -1,0 +1,81 @@
+pipeline {
+    agent any
+    
+    environment {
+        PROD_SERVER = '46.101.216.36' 
+        PROD_USER = 'patste'     
+        DEPLOY_DIR = '/opt/personal-site-devops'
+    }
+    
+    stages {
+        stage('Checkout Code') {
+            steps {
+                echo "📥 Checking out latest code..."
+                checkout scm
+            }
+        }
+        
+        stage('Deploy to Production') {
+            steps {
+                script {
+                    echo "🚀 Starting deployment to PRODUCTION server..."
+                    
+                    // Deploy to production server
+                    sh """
+                        ssh ${PROD_USER}@${PROD_SERVER} << 'EOF'
+                            echo "📥 Getting latest code on server..."
+                            cd ${DEPLOY_DIR}
+                            
+                            echo "🔄 Pulling latest changes..."
+                            git fetch origin
+                            git pull origin main
+                            git reset --hard origin/main
+                            
+                            echo "📋 Current commit:"
+                            git log --oneline -1
+                            
+                            echo "🛑 Stopping existing containers..."
+                            docker-compose -f docker-compose.prod.yml down || true
+                            
+                            echo "🏗️ Building application..."
+                            docker-compose -f docker-compose.prod.yml build --no-cache
+                            
+                            echo "🚀 Starting application..."
+                            docker-compose -f docker-compose.prod.yml up -d
+                            
+                            echo "⏳ Waiting for application to start..."
+                            sleep 20
+                            
+                            echo "🔍 Running health check..."
+                            if curl -f http://localhost:3000/health; then
+                                echo "✅ PRODUCTION deployment successful!"
+                            else
+                                echo "❌ Health check failed!"
+                                docker-compose -f docker-compose.prod.yml logs --tail=10
+                                exit 1
+                            fi
+                            
+                            echo "🧹 Cleaning up old images..."
+                            docker image prune -f || true
+EOF
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo "🎉 PRODUCTION deployment completed successfully!"
+            echo "🌐 Website: http://${PROD_SERVER}:3000"
+            echo "❤️  Health: http://${PROD_SERVER}:3000/health"
+            echo "🔗 Configure your reverse proxy to point to port 3000"
+        }
+        failure {
+            echo "❌ PRODUCTION deployment failed!"
+        }
+        always {
+            echo "📋 PRODUCTION deployment job finished."
+        }
+    }
+} 
