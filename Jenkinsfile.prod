@@ -67,8 +67,8 @@ EOF
     post {
         success {
             echo "🎉 PRODUCTION deployment completed successfully!"
-            echo "🌐 Website: http://${PROD_SERVER}:3000"
-            echo "🔗 Configure your reverse proxy to point to port 3000"
+            echo "🌐 Website: http://${PROD_SERVER}:3001"
+            echo "🔗 Configure your reverse proxy to point to port 3001"
         }
         failure {
             echo "❌ PRODUCTION deployment failed!"
